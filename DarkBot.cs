@@ -1,18 +1,48 @@
+using System.Linq;
 using System.Reflection;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using tDarkBot.Models;
 using tDarkBot.Services;
+using tDarkBot.TypeConverters;
 
 namespace tDarkBot
 {
     public class DarkBot
     {
+        private IServiceProvider services;
         private DiscordSocketClient client;
         private InteractionService interaction;
         private CurrencyConverterService currencyConverter;
 
+        private CommandHandlingService commandHandling;
+
         public DarkBot()
+        {
+            services = ConfigureServices();
+
+            client = services.GetRequiredService<DiscordSocketClient>();
+            interaction = services.GetRequiredService<InteractionService>();
+            currencyConverter = services.GetRequiredService<CurrencyConverterService>();
+            commandHandling = services.GetRequiredService<CommandHandlingService>();
+        }
+
+        private IServiceProvider ConfigureServices()
+        {
+            var builder = new ServiceCollection()
+            .AddSingleton(new CurrencyConverterService())
+            .AddSingleton(MakeClientConfig)
+            .AddSingleton(MakeClient)
+            .AddSingleton(MakeInteractionConfig)
+            .AddSingleton(MakeInteraction)
+            .AddSingleton(MakeCommandService);
+
+            return builder.BuildServiceProvider();
+        }
+
+        private DiscordSocketConfig MakeClientConfig(IServiceProvider provider)
         {
             var config = new DiscordSocketConfig();
             config.GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.MessageContent | GatewayIntents.Guilds | GatewayIntents.GuildMessages;
@@ -20,16 +50,45 @@ namespace tDarkBot
             config.UseSystemClock = true;
             config.AlwaysDownloadUsers = true;
 
+            return config;
+        }
 
-            client = new DiscordSocketClient(config);
+        private DiscordSocketClient MakeClient(IServiceProvider services)
+        {
+            var config = services.GetRequiredService<DiscordSocketConfig>();
+            var client = new DiscordSocketClient(config);
+
             client.Log += LogAsync;
             client.Ready += ReadyAsync;
-            client.InteractionCreated += InteractionCreated;
+            //client.InteractionCreated += InteractionCreated;
 
-            interaction = new InteractionService(client);
-            interaction.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+            return client;
+        }
 
-            currencyConverter = new CurrencyConverterService();
+        private InteractionServiceConfig MakeInteractionConfig(IServiceProvider provider)
+        {
+            var config = new InteractionServiceConfig();
+            config.AutoServiceScopes = true;
+            config.EnableAutocompleteHandlers = true;
+
+            return config;
+        }
+
+        private InteractionService MakeInteraction(IServiceProvider provider)
+        {
+            var client = provider.GetRequiredService<DiscordSocketClient>();
+            var config = provider.GetRequiredService<InteractionServiceConfig>();
+
+            var interaction = new InteractionService(client, config);
+            interaction.AddTypeConverter<CurrencyModel>(new CurrencyModelConverter());
+
+            return interaction;
+        }
+
+        private CommandHandlingService MakeCommandService(IServiceProvider provider)
+        {
+            var service = new CommandHandlingService(provider);
+            return service;
         }
 
         public async Task Start()
@@ -50,33 +109,36 @@ namespace tDarkBot
             await Task.Delay(Timeout.Infinite);
         }
 
-        private async Task InteractionCreated(SocketInteraction arg)
-        {
-            if (arg != null)
-            {
-                var ctx = new SocketInteractionContext(client, arg);
-                IInteractionContext? botContext;
+        // private async Task InteractionCreated(SocketInteraction arg)
+        // {
+        //     if (arg != null)
+        //     {
+        //         var ctx = new SocketInteractionContext(client, arg);
+        //         IInteractionContext? botContext;
 
-                switch (arg.Type)
-                {
-                    case InteractionType.ApplicationCommand:
-                        botContext = new DarkBotContext<SocketSlashCommand>(client, arg as SocketSlashCommand);
-                        break;
-                    case InteractionType.MessageComponent:
-                        botContext = new DarkBotContext<SocketMessageCommand>(client, arg as SocketMessageCommand);
-                        break;
-                    case InteractionType.ModalSubmit:
-                        botContext = new DarkBotContext<SocketModal>(client, arg as SocketModal);
-                        break;
-                    default:
-                    case InteractionType.Ping:
-                        botContext = new DarkBotContext<SocketUserCommand>(client, arg as SocketUserCommand);
-                        break;
-                }
+        //         switch (arg.Type)
+        //         {
+        //             case InteractionType.ApplicationCommand:
+        //                 botContext = new DarkBotContext<SocketSlashCommand>(client, (SocketSlashCommand)arg);
+        //                 break;
+        //             case InteractionType.MessageComponent:
+        //                 botContext = new DarkBotContext<SocketMessageCommand>(client, (SocketMessageCommand)arg);
+        //                 break;
+        //             case InteractionType.ModalSubmit:
+        //                 botContext = new DarkBotContext<SocketModal>(client, (SocketModal)arg);
+        //                 break;
+        //             case InteractionType.ApplicationCommandAutocomplete:
+        //                 botContext = new DarkBotContext<SocketAutocompleteInteraction>(client, (SocketAutocompleteInteraction)arg);
+        //                 break;
+        //             default:
+        //             case InteractionType.Ping:
+        //                 botContext = new DarkBotContext<SocketUserCommand>(client, (SocketUserCommand)arg);
+        //                 break;
+        //         }
 
-                await interaction.ExecuteCommandAsync(botContext, null);
-            }
-        }
+        //         await interaction.ExecuteCommandAsync(botContext, null);
+        //     }
+        // }
 
         private Task LogAsync(LogMessage log)
         {
@@ -84,16 +146,16 @@ namespace tDarkBot
             return Task.CompletedTask;
         }
 
-        private Task ReadyAsync()
+        private async Task ReadyAsync()
         {
             Console.WriteLine($"{client.CurrentUser} is connected!");
 
-            interaction.RegisterCommandsGloballyAsync();
+            await commandHandling.InitializeAsync();
 
-            client.SetActivityAsync(new Game("Bot developed on C# (CSharp)", ActivityType.Playing));
-            client.SetStatusAsync(UserStatus.Online);
+            await client.SetActivityAsync(new Game("Bot developed on C# (CSharp)", ActivityType.Playing));
+            await client.SetStatusAsync(UserStatus.Online);
 
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }

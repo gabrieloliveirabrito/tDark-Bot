@@ -1,17 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
 using Newtonsoft.Json;
 using tDarkBot.Converters;
 

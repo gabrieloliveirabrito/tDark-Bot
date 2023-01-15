@@ -20,10 +20,12 @@ namespace tDarkBot.Commands
     {
         private async Task<Stream> FetchImage(string url)
         {
-            var client = new HttpClient();
-            var stream = await client.GetStreamAsync(url);
+            using (var client = new HttpClient())
+            {
+                var stream = await client.GetStreamAsync(url);
 
-            return stream;
+                return stream;
+            }
         }
 
         [SlashCommand("avatar", "Retrieve sender (or user in param) avatar")]
