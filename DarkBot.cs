@@ -37,8 +37,9 @@ namespace tDarkBot
             try
             {
                 await currencyConverter.MakeCacheAsync();
+                var token = Environment.GetEnvironmentVariable("BOT_TOKEN");
 
-                await client.LoginAsync(TokenType.Bot, "OTk5MzUxNDU3OTM5NzE4MTU0.GJF6Qz.N4gtWhsRYFj4SPyKSZutGQdzw_zb76PuAsHdio");
+                await client.LoginAsync(TokenType.Bot, token);
                 await client.StartAsync();
             }
             catch (Exception ex)

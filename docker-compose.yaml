@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  bot:
+    env_file:
+      - .env
+    container_name: dark_bot_csharp
+    restart: always
+    network_mode: "host"
+    build:
+      context: .
+      dockerfile: DockerFile
