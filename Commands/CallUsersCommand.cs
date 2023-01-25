@@ -20,13 +20,13 @@ namespace tDarkBot.Commands
             {
                 await Context.Interaction.RespondAsync("This command can only be used for mentionable roles!");
             }
-            else if (role.Permissions.Administrator || role.Permissions.ModerateMembers)
-            {
-                await Context.Interaction.RespondAsync("This command can only be used for non moderation roles!");
-            }
+            // else if (role.Permissions.Administrator || role.Permissions.ModerateMembers)
+            // {
+            //     await Context.Interaction.RespondAsync("This command can only be used for non moderation roles!");
+            // }
             else
             {
-                string content = role.Mention + " ";
+                string content = message + " - " + role.Mention;
                 var guildUsers = await role.Guild.GetUsersAsync();
                 var mentions = new List<string>();
                 foreach (var user in guildUsers)
@@ -35,7 +35,6 @@ namespace tDarkBot.Commands
                         mentions.Add(user.Mention);
                 }
                 content += string.Join(" ", mentions);
-                content += " - " + message;
                 content += " - Mensagem enviada por " + Context.Interaction.User.Mention;
 
                 await Context.Interaction.RespondAsync(content);

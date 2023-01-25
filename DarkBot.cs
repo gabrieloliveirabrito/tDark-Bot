@@ -16,8 +16,8 @@ namespace tDarkBot
         private DiscordSocketClient client;
         private InteractionService interaction;
         private CurrencyConverterService currencyConverter;
-
         private CommandHandlingService commandHandling;
+        private TimeService _timeService;
 
         public DarkBot()
         {
@@ -27,6 +27,7 @@ namespace tDarkBot
             interaction = services.GetRequiredService<InteractionService>();
             currencyConverter = services.GetRequiredService<CurrencyConverterService>();
             commandHandling = services.GetRequiredService<CommandHandlingService>();
+            _timeService = services.GetRequiredService<TimeService>();
         }
 
         private IServiceProvider ConfigureServices()
@@ -37,7 +38,8 @@ namespace tDarkBot
             .AddSingleton(MakeClient)
             .AddSingleton(MakeInteractionConfig)
             .AddSingleton(MakeInteraction)
-            .AddSingleton(MakeCommandService);
+            .AddSingleton(MakeCommandService)
+            .AddSingleton(MakeTimeService);
 
             return builder.BuildServiceProvider();
         }
@@ -88,6 +90,12 @@ namespace tDarkBot
         private CommandHandlingService MakeCommandService(IServiceProvider provider)
         {
             var service = new CommandHandlingService(provider);
+            return service;
+        }
+
+        private TimeService MakeTimeService(IServiceProvider provider)
+        {
+            var service = new TimeService();
             return service;
         }
 
@@ -150,6 +158,7 @@ namespace tDarkBot
         {
             Console.WriteLine($"{client.CurrentUser} is connected!");
 
+            _timeService.ReadyDate = DateTime.Now;
             await commandHandling.InitializeAsync();
 
             await client.SetActivityAsync(new Game("Bot developed on C# (CSharp)", ActivityType.Playing));
