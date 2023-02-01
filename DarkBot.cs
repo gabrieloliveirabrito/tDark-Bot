@@ -33,6 +33,7 @@ namespace tDarkBot
         private IServiceProvider ConfigureServices()
         {
             var builder = new ServiceCollection()
+            .AddScoped(MakeHttpClient)
             .AddSingleton(new CurrencyConverterService())
             .AddSingleton(MakeClientConfig)
             .AddSingleton(MakeClient)
@@ -44,6 +45,12 @@ namespace tDarkBot
             return builder.BuildServiceProvider();
         }
 
+        private HttpClient MakeHttpClient(IServiceProvider provider)
+        {
+            var client = new HttpClient();
+            return client;
+        }
+
         private DiscordSocketConfig MakeClientConfig(IServiceProvider provider)
         {
             var config = new DiscordSocketConfig();
@@ -51,6 +58,14 @@ namespace tDarkBot
             config.UseInteractionSnowflakeDate = true;
             config.UseSystemClock = true;
             config.AlwaysDownloadUsers = true;
+            config.AlwaysDownloadDefaultStickers = true;
+            config.AlwaysResolveStickers = true;
+            config.APIOnRestInteractionCreation = true;
+            config.MessageCacheSize = 500;
+
+            var debugVar = Environment.GetEnvironmentVariable("BOT_DEBUG");
+            if (debugVar != null && debugVar == "1")
+                config.LogLevel = LogSeverity.Debug;
 
             return config;
         }

@@ -18,14 +18,15 @@ namespace tDarkBot.Commands
 
     public class AvatarCommand : BaseCommand
     {
+        private HttpClient _client;
+        public AvatarCommand(HttpClient client)
+        {
+            _client = client;
+        }
+
         private async Task<Stream> FetchImage(string url)
         {
-            using (var client = new HttpClient())
-            {
-                var stream = await client.GetStreamAsync(url);
-
-                return stream;
-            }
+            return await _client.GetStreamAsync(url);
         }
 
         [SlashCommand("avatar", "Retrieve sender (or user in param) avatar")]

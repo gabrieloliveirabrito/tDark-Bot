@@ -19,6 +19,7 @@ services:
       - .env
     environment:
       - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1
+      - BOT_DEBUG=1
     container_name: dark_bot_csharp_debug
     restart: always
     network_mode: "host"
